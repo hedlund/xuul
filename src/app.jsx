@@ -1,9 +1,14 @@
 import Xuul from './xuul';
 
-const App = props => (
-  <h1>Hi {props.name}</h1>
-);
+const Counter = props => {
+  const [state, setState] = Xuul.useState(1);
+  return (
+    <h1 onClick={() => setState(c => c + 1)}>
+      Count: {state}
+    </h1>
+  )
+};
 
-const element = <App name="foo" />;
+const element = <Counter />;
 const container = document.getElementById('root');
 Xuul.render(element, container);

@@ -5,7 +5,7 @@ const TAG_PLACEMENT = Symbol('PLACEMENT');
 const TAG_DELETION = Symbol('DELETION');
 
 export function render(element, container) {
-  workRoot = {
+  wipRoot = {
     dom: container,
     props: {
       children: [element],
@@ -13,10 +13,10 @@ export function render(element, container) {
     alternate: currentRoot,
   };
   deletions = [];
-  nextUnitOfWork = workRoot;
+  nextUnitOfWork = wipRoot;
 }
 
-let workRoot = null;
+let wipRoot = null;
 let currentRoot = null;
 let nextUnitOfWork = null;
 let deletions = null;
@@ -28,7 +28,7 @@ function workLoop(deadline) {
     
     shouldYield = deadline.timeRemaining() < 1;
 
-    if (!nextUnitOfWork && workRoot) {
+    if (!nextUnitOfWork && wipRoot) {
       commitRoot();
     }
   }
@@ -48,9 +48,48 @@ function performUnitOfWork(fiber) {
   return findNextUnitOfWork(fiber);
 }
 
+let wipFiber = null;
+let hookIndex = 0;
+
 function updateFunctionComponent(fiber) {
+  wipFiber = fiber;
+  wipFiber.hooks = [];
+  hookIndex = 0;
+
   const children = [fiber.type(fiber.props)];
   reconcileChildren(fiber, children);
+}
+
+export function useState(initial) {
+  const oldHook =
+    wipFiber.alternate &&
+    wipFiber.alternate.hooks &&
+    wipFiber.alternate.hooks[hookIndex];
+  
+  const hook = {
+    state: oldHook ? oldHook.state : initial,
+    queue: [],
+  };
+
+  const actions = oldHook ? oldHook.queue : [];
+  actions.forEach(action => {
+    hook.state = action(hook.state);
+  });
+
+  const setState = action => {
+    hook.queue.push(action);
+    wipRoot = {
+      dom: currentRoot.dom,
+      props: currentRoot.props,
+      alternate: currentRoot,
+    };
+    nextUnitOfWork = wipRoot;
+    deletions = [];
+  };
+
+  wipFiber.hooks.push(hook);
+  ++hookIndex;
+  return [hook.state, setState];
 }
 
 function updateHostComponent(fiber) {
@@ -60,15 +99,12 @@ function updateHostComponent(fiber) {
   reconcileChildren(fiber, fiber.props.children);
 }
 
-function reconcileChildren(workFiber, elements) {
+function reconcileChildren(wipFiber, elements) {
   let index = 0;
-  let oldFiber = workFiber.alternate && workFiber.alternate.child;
+  let oldFiber = wipFiber.alternate && wipFiber.alternate.child;
   let prevSibling = null;
 
-  while (
-    index < elements.length || 
-    oldFiber !== null
-  ) {
+  while (index < elements.length || !!oldFiber) {
     const element = elements[index];
     let newFiber = null;
 
@@ -84,7 +120,7 @@ function reconcileChildren(workFiber, elements) {
         type: oldFiber.type,
         props: element.props,
         dom: oldFiber.dom,
-        parent: workFiber,
+        parent: wipFiber,
         alternate: oldFiber,
         effectTag: TAG_UPDATE,
       };
@@ -94,7 +130,7 @@ function reconcileChildren(workFiber, elements) {
         type: element.type,
         props: element.props,
         dom: null,
-        parent: workFiber,
+        parent: wipFiber,
         alternate: null,
         effectTag: TAG_PLACEMENT,
       };
@@ -109,11 +145,13 @@ function reconcileChildren(workFiber, elements) {
     }
 
     if (index === 0) {
-      workFiber.child = newFiber;
+      wipFiber.child = newFiber;
     } else {
+      console.log(index, prevSibling);
       prevSibling.sibling = newFiber;
     }
 
+    console.warn('prev', newFiber);
     prevSibling = newFiber;
     ++index;
   }
@@ -135,9 +173,9 @@ function findNextUnitOfWork(fiber) {
 
 function commitRoot() {
   deletions.forEach(commitWork);
-  commitWork(workRoot.child);
-  currentRoot = workRoot;
-  workRoot = null;
+  commitWork(wipRoot.child);
+  currentRoot = wipRoot;
+  wipRoot = null;
 }
 
 function commitWork(fiber) {
