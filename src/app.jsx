@@ -1,11 +1,9 @@
 import Xuul from './xuul';
 
-const element = (
-  <div id="foo">
-    <h1>bar</h1>
-    <h2>yolo</h2>
-  </div>
+const App = props => (
+  <h1>Hi {props.name}</h1>
 );
 
+const element = <App name="foo" />;
 const container = document.getElementById('root');
 Xuul.render(element, container);
