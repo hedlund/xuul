@@ -1,5 +1,9 @@
 import xuul, { render, useState } from './xuul';
 
+const Thing = props => (
+  [1, 2, 3].map(v => <div>{v}</div>)
+);
+
 const Counter = props => {
   const [state, setState] = useState(1);
   return (
@@ -7,6 +11,9 @@ const Counter = props => {
       <h1 onClick={() => setState(state + 1)}>
         Count: {state}
       </h1>
+      <p>
+        <Thing />
+      </p>
     </div>
   )
 };

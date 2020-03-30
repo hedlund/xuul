@@ -2,10 +2,11 @@ export const TAG_UPDATE = Symbol('UPDATE');
 export const TAG_PLACEMENT = Symbol('PLACEMENT');
 export const TAG_DELETION = Symbol('DELETION');
 
-export function reconcileChildren(fiber, elements) {
+export function reconcileChildren(fiber, children) {
   let oldFiber = fiber.alternate && fiber.alternate.child;
   let prevSibling = null;
 
+  const elements = children.flat();
   for (let n=0; (n < elements.length) || !!oldFiber; ++n) {
     const element = elements[n];
     let newFiber = null;
