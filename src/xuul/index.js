@@ -1,9 +1,30 @@
-import { createElement } from './element';
-import { render, useState } from './render';
-//import { useState } from './state';
+import { TEXT_ELEMENT } from './dom';
 
-export default {
-  createElement,
-  render,
-  useState,
-};
+export { render } from './work';
+export { useState } from './functions';
+
+function createElement(type, props, ...children) {
+  return {
+    type,
+    props: {
+      ...props,
+      children: children.map(child =>
+        typeof child === 'object'
+          ? child
+          : createTextElement(child)
+      ),
+    },
+  };
+}
+
+function createTextElement(text) {
+  return {
+    type: TEXT_ELEMENT,
+    props: {
+      nodeValue: text,
+      children: [],
+    },
+  };
+}
+
+export default createElement;
