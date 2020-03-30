@@ -73,7 +73,11 @@ export function useState(initial) {
 
   const actions = oldHook ? oldHook.queue : [];
   actions.forEach(action => {
-    hook.state = action(hook.state);
+    if (action instanceof Function) {
+      hook.state = action(hook.state);
+    } else {
+      hook.state = action;
+    }
   });
 
   const setState = action => {
@@ -124,20 +128,22 @@ function reconcileChildren(wipFiber, elements) {
         alternate: oldFiber,
         effectTag: TAG_UPDATE,
       };
-    }
-    if (element && !sameType) {
-      newFiber = {
-        type: element.type,
-        props: element.props,
-        dom: null,
-        parent: wipFiber,
-        alternate: null,
-        effectTag: TAG_PLACEMENT,
-      };
-    }
-    if (oldFiber && !sameType) {
-      oldFiber.effectTag = TAG_DELETION;
-      deletions.push(oldFiber);
+    } else {
+      if (element) {
+        newFiber = {
+          type: element.type,
+          props: element.props,
+          dom: null,
+          parent: wipFiber,
+          alternate: null,
+          effectTag: TAG_PLACEMENT,
+        };
+      }
+
+      if (oldFiber) {
+        oldFiber.effectTag = TAG_DELETION;
+        deletions.push(oldFiber);
+      }
     }
 
     if (oldFiber) {
@@ -147,11 +153,9 @@ function reconcileChildren(wipFiber, elements) {
     if (index === 0) {
       wipFiber.child = newFiber;
     } else {
-      console.log(index, prevSibling);
       prevSibling.sibling = newFiber;
     }
 
-    console.warn('prev', newFiber);
     prevSibling = newFiber;
     ++index;
   }
